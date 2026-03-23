@@ -3,68 +3,71 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Cầu Lông - GV Thể Dục</title>
+    <title>AI Kiểm Tra Cầm Cầu - GV Thể Dục</title>
     <style>
-        body { font-family: -apple-system, sans-serif; text-align: center; background-color: #f0f2f5; margin: 0; padding: 10px; }
-        .app-card { max-width: 400px; margin: 10px auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        
-        /* Đảm bảo các nút luôn hiển thị rõ ràng */
-        .button-group { display: flex; flex-direction: column; gap: 10px; margin-bottom: 15px; }
-        
-        .btn { 
-            display: block;
-            width: 100%;
-            padding: 20px; 
-            font-size: 18px; 
-            border-radius: 12px; 
-            border: none; 
-            color: white; 
-            cursor: pointer; 
-            font-weight: bold; 
-            box-sizing: border-box;
-        }
-
-        #start-btn { background: #28a745; display: block !important; } /* Ép buộc hiển thị */
-        #switch-btn { background: #007bff; display: none; } /* Chỉ hiện sau khi nhấn Bắt đầu */
+        body { font-family: -apple-system, sans-serif; text-align: center; background-color: #f4f7f6; margin: 0; padding: 15px; }
+        .app-card { max-width: 400px; margin: auto; background: white; padding: 25px; border-radius: 25px; box-shadow: 0 15px 35px rgba(0,0,0,0.1); }
+        h2 { color: #1a73e8; margin-bottom: 5px; text-transform: uppercase; font-size: 22px; }
+        p.sub-title { color: #777; font-size: 14px; margin-bottom: 20px; }
         
         #webcam-container { 
             margin: 15px auto; 
-            border: 5px solid #333; 
+            border: 6px solid #333; 
             width: 280px; 
             height: 280px; 
-            border-radius: 15px; 
+            border-radius: 20px; 
             overflow: hidden; 
             background: #000;
-        }
-        #webcam-container canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
-
-        #result-box { 
-            font-size: 30px; 
-            font-weight: 900; 
-            margin-top: 15px; 
-            min-height: 60px;
             display: flex;
             align-items: center;
             justify-content: center;
         }
+        #webcam-container canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
+
+        .btn { 
+            padding: 18px; 
+            font-size: 18px; 
+            border-radius: 15px; 
+            border: none; 
+            color: white; 
+            cursor: pointer; 
+            font-weight: bold; 
+            width: 100%; 
+            margin: 10px 0;
+            transition: all 0.2s;
+        }
+        #start-btn { background: #28a745; box-shadow: 0 4px 15px rgba(40,167,69,0.3); }
+        #switch-btn { background: #007bff; display: none; }
+        
+        #result-box { 
+            font-size: 30px; 
+            font-weight: 900; 
+            margin-top: 15px; 
+            min-height: 70px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 15px;
+            text-transform: uppercase;
+        }
+        .status-text { font-size: 13px; color: #999; margin-top: 15px; border-top: 1px solid #eee; padding-top: 10px; }
     </style>
 </head>
 <body>
 
 <div class="app-card">
-    <h2 style="color: #1a73e8; margin-top: 0;">AI CẦM CẦU LÔNG</h2>
-    
-    <div class="button-group">
-        <button id="start-btn" class="btn" onclick="startCamera()">▶ BẮT ĐẦU KIỂM TRA</button>
-        <button id="switch-btn" class="btn" onclick="switchCamera()">🔄 ĐỔI CAMERA</button>
-    </div>
+    <h2>AI CẦM CẦU LÔNG</h2>
+    <p class="sub-title">Dành cho học sinh tập luyện kỹ thuật</p>
+
+    <button id="start-btn" class="btn" onclick="startCamera()">▶ BẮT ĐẦU KIỂM TRA</button>
+    <button id="switch-btn" class="btn" onclick="switchCamera()">🔄 ĐỔI CAMERA SAU/TRƯỚC</button>
 
     <div id="webcam-container">
-        <div id="placeholder" style="color: white; padding-top: 130px; font-size: 14px;">Camera đang chờ...</div>
+        <div id="placeholder" style="color: white; font-size: 14px;">Đang chờ Camera...</div>
     </div>
 
     <div id="result-box">---</div>
-    <p id="status-info" style="font-size: 12px; color: #888;">Nhấn Bắt đầu để AI hoạt động</p>
+    <p class="status-text">Mô hình gồm 3 lớp: Đúng, Sai, Nền</p>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
@@ -76,26 +79,18 @@
     let isFacingBack = false;
 
     async function startCamera() {
-        const sBtn = document.getElementById("start-btn");
-        sBtn.innerText = "ĐANG TẢI AI...";
-        
+        document.getElementById("start-btn").innerText = "ĐANG TẢI AI...";
         try {
-            // Nạp mô hình
             if (!model) {
                 model = await tmImage.load(URL + "model.json", URL + "metadata.json");
             }
             maxPredictions = model.getTotalClasses();
-            
-            // Khởi động webcam
             await initWebcam();
-            
-            // Sau khi thành công: Ẩn nút Bắt đầu, Hiện nút Đổi Camera
-            sBtn.style.setProperty('display', 'none', 'important');
+            document.getElementById("start-btn").style.display = "none";
             document.getElementById("switch-btn").style.display = "block";
-            document.getElementById("status-info").innerText = "Hệ thống ĐANG HOẠT ĐỘNG";
         } catch (err) {
-            alert("Lỗi: Không mở được camera. Vui lòng kiểm tra quyền truy cập.");
-            sBtn.innerText = "THỬ LẠI";
+            alert("LỖI: Không mở được camera. Vui lòng kiểm tra quyền truy cập.");
+            document.getElementById("start-btn").innerText = "THỬ LẠI";
         }
     }
 
@@ -106,7 +101,6 @@
         await webcam.setup({ facingMode }); 
         await webcam.play();
         window.requestAnimationFrame(loop);
-        
         const container = document.getElementById("webcam-container");
         container.innerHTML = ""; 
         container.appendChild(webcam.canvas);
@@ -119,9 +113,9 @@
         window.requestAnimationFrame(loop);
     }
 
-    // Hàm khử dấu tiếng Việt tối ưu cho 2 nhãn của bạn
+    // Hàm khử dấu tiếng Việt tối ưu cho cả 3 nhãn của bạn
     function clean(str) {
-        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+        return str.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase().trim();
     }
 
     async function predict() {
@@ -136,9 +130,15 @@
             }
         }
         
+        // Chuẩn hóa tên nhãn
         const label = clean(bestClass);
 
-        if (highestProb > 0.7) { 
+        // Xử lý logic hiển thị dựa trên 3 nhãn
+        if (label.includes("nen")) {
+            // Nếu là nhãn 'nền', hiển thị dấu chờ
+            labelContainer.innerHTML = "<span style='color:#6c757d'>---</span>";
+        } else if (highestProb > 0.7) { 
+            // Chỉ hiển thị kết quả Đúng/Sai khi độ tự tin > 70%
             if (label.includes("dung")) {
                 labelContainer.innerHTML = "<span style='color:#28a745'>ĐÚNG KỸ THUẬT ✔</span>";
             } else if (label.includes("sai")) {
@@ -147,6 +147,7 @@
                 labelContainer.innerHTML = "<span style='color:#6c757d'>---</span>";
             }
         } else {
+            // Khi AI đang phân vân, hiển thị trạng thái quét
             labelContainer.innerHTML = "<span style='color:#ccc; font-size: 20px;'>ĐANG QUÉT...</span>";
         }
     }

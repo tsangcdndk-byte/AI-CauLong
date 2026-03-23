@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI test kỹ thuật Cầm Cầu Lông - GV Thể Dục</title>
+    <title>AI Cầm Cầu Lông - GV Thể Dục</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 10px; overflow-x: hidden; }
@@ -30,7 +30,7 @@
 <body>
 
 <div class="app-card">
-    <h2>AI TEST KỸ THUẬT CẦM CẦU LÔNG</h2>
+    <h2>AI CẦM CẦU LÔNG</h2>
     <p style="font-size: 12px; color: #666; margin-bottom: 15px;">Mặc định: <b>Camera Sau</b></p>
     
     <button id="start-btn" class="btn" onclick="startApp()">▶ BẮT ĐẦU PHÂN TÍCH</button>
@@ -52,13 +52,6 @@
     let model, webcam, maxPredictions;
     let isFacingBack = true; 
     let isProcessing = false;
-    let cameraCount = 0;
-
-    // Đếm số lượng camera khả dụng
-    async function checkCameraCount() {
-        const devices = await navigator.mediaDevices.enumerateDevices();
-        cameraCount = devices.filter(d => d.kind === 'videoinput').length;
-    }
 
     async function startApp() {
         if(isProcessing) return;
@@ -66,10 +59,11 @@
         document.getElementById("start-btn").innerText = "ĐANG TẢI AI...";
 
         try {
-            await checkCameraCount();
+            // Tải mô hình
             model = await tmImage.load(URL + "model.json", URL + "metadata.json");
             maxPredictions = model.getTotalClasses();
             
+            // Khởi động Camera (mặc định Sau)
             await setupWebcam();
             createDashboard();
 
@@ -78,7 +72,7 @@
             document.getElementById("dashboard").style.display = "block";
             window.requestAnimationFrame(loop);
         } catch (e) {
-            alert("LỖI QUYỀN: Bạn cần chọn 'Cho phép Camera' trong cài đặt trình duyệt để tiếp tục.");
+            alert("LỖI: Trình duyệt chặn quyền truy cập Camera.");
             document.getElementById("start-btn").innerText = "▶ THỬ LẠI";
         }
         isProcessing = false;
@@ -86,22 +80,30 @@
 
     async function setupWebcam() {
         document.getElementById("loading-ui").style.display = "block";
-        if (webcam) { await webcam.stop(); }
         
-        // Nghỉ một nhịp để phần cứng kịp phản hồi
-        await new Promise(r => setTimeout(r, 600));
+        // Dừng camera hiện tại
+        if (webcam && webcam.stop) { 
+            await webcam.stop(); 
+        }
+        
+        // Nghỉ để giải phóng phần cứng (Quan trọng cho iPhone)
+        await new Promise(r => setTimeout(r, 650));
 
+        // Thiết lập lật hình: Sau (isFacingBack=true) -> flip=false
         const flip = !isFacingBack; 
         webcam = new tmImage.Webcam(320, 320, flip);
         
         try {
-            await webcam.setup({ facingMode: isFacingBack ? "environment" : "user" });
+            const facingMode = isFacingBack ? "environment" : "user";
+            await webcam.setup({ facingMode: facingMode });
             await webcam.play();
+            
             const wrapper = document.getElementById("webcam-wrapper");
             wrapper.innerHTML = '<div id="loading-ui">ĐANG XỬ LÝ...</div>';
             wrapper.appendChild(webcam.canvas);
         } catch (err) {
-            throw err; // Bắn lỗi lên để hàm switchCamera xử lý
+            console.error("Camera setup failed:", err);
+            throw err;
         } finally {
             document.getElementById("loading-ui").style.display = "none";
         }
@@ -109,28 +111,26 @@
 
     async function switchCamera() {
         if (isProcessing) return;
-        
-        // 1. Kiểm tra nếu chỉ có 1 camera
-        if (cameraCount < 2) {
-            alert("Thiết bị của bạn chỉ có 1 Camera, không thể chuyển đổi!");
-            return;
-        }
-
         isProcessing = true;
+        
         const btn = document.getElementById("switch-btn");
+        const originalText = btn.innerText;
+        btn.innerText = "ĐANG CHUYỂN...";
         btn.disabled = true;
 
-        // Lưu trạng thái cũ để nếu lỗi thì quay lại
+        // Lưu trạng thái cũ
         const oldState = isFacingBack;
         isFacingBack = !isFacingBack;
 
         try {
             await setupWebcam();
         } catch (e) {
-            alert("Lỗi phần cứng khi chuyển Camera. Hệ thống sẽ quay lại Camera cũ.");
-            isFacingBack = oldState; // Quay lại trạng thái cũ
+            // Nếu lỗi khi chuyển sang camera mới, quay lại camera cũ
+            alert("Thiết bị không tìm thấy camera thứ 2 hoặc lỗi truy cập.");
+            isFacingBack = oldState;
             await setupWebcam();
         } finally {
+            btn.innerText = originalText;
             btn.disabled = false;
             isProcessing = false;
         }

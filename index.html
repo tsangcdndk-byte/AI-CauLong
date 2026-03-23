@@ -3,51 +3,65 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Kiểm Tra Cầm Cầu</title>
+    <title>AI PHÂN TÍCH CẦM CẦU LÔNG</title>
     <style>
-        body { font-family: sans-serif; text-align: center; background-color: #f4f4f9; margin: 0; padding: 10px; }
-        .container { max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 20px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
-        #webcam-container { margin: 15px auto; border: 4px solid #333; width: 280px; height: 280px; border-radius: 10px; overflow: hidden; background: #000; }
-        #webcam-container canvas { width: 100% !important; height: 100% !important; }
+        :root { --primary: #1a73e8; --success: #28a745; --danger: #dc3545; --neutral: #6c757d; }
+        body { font-family: -apple-system, system-ui, sans-serif; background-color: #f8f9fa; margin: 0; padding: 15px; display: flex; justify-content: center; }
+        .app-card { width: 100%; max-width: 450px; background: white; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
         
-        .btn { padding: 15px; font-size: 16px; border-radius: 10px; border: none; color: white; cursor: pointer; font-weight: bold; width: 100%; margin: 5px 0; }
-        #start-btn { background: #28a745; }
-        #check-btn { background: #007bff; display: none; }
+        h2 { color: var(--primary); font-size: 22px; margin-bottom: 5px; text-transform: uppercase; }
+        .sub-title { color: #666; font-size: 14px; margin-bottom: 20px; }
 
-        /* Bảng hiển thị 3 kết quả song song */
-        .status-box { margin-top: 15px; text-align: left; }
-        .label-row { margin-bottom: 10px; padding: 10px; border-radius: 8px; background: #eee; }
-        .bar-bg { width: 100%; height: 12px; background: #ddd; border-radius: 6px; overflow: hidden; margin-top: 5px; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.2s; }
-        .fill-dung { background: #28a745; }
-        .fill-sai { background: #dc3545; }
-        .fill-nen { background: #6c757d; }
+        /* Khung Camera */
+        #webcam-wrapper { 
+            position: relative; margin: 0 auto 20px; width: 280px; height: 280px; 
+            border: 6px solid #333; border-radius: 20px; overflow: hidden; background: #000;
+        }
+        #webcam-wrapper canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
+
+        /* Nút bấm */
+        .btn { 
+            padding: 18px; font-size: 18px; border-radius: 12px; border: none; color: white; 
+            cursor: pointer; font-weight: bold; width: 100%; transition: all 0.3s ease;
+        }
+        #start-btn { background: var(--success); box-shadow: 0 4px 15px rgba(40,167,69,0.3); }
+        #switch-btn { background: var(--primary); display: none; margin-bottom: 15px; }
+        .btn:active { transform: scale(0.98); }
+
+        /* Bảng hiển thị kết quả % */
+        #dashboard { display: none; margin-top: 20px; text-align: left; }
+        .result-row { 
+            margin-bottom: 12px; padding: 12px; border-radius: 12px; 
+            background: #f1f3f4; transition: background 0.2s; 
+        }
+        .label-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .label-name { font-weight: bold; font-size: 15px; }
+        .label-percent { font-family: monospace; font-size: 18px; font-weight: bold; }
+        
+        /* Thanh Progress Bar */
+        .bar-bg { width: 100%; height: 12px; background: #dfe1e5; border-radius: 6px; overflow: hidden; }
+        .bar-fill { height: 100%; width: 0%; transition: width 0.2s ease-out; }
+        .fill-dung { background: var(--success); }
+        .fill-sai { background: var(--danger); }
+        .fill-nen { background: var(--neutral); }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <h3 style="color: #1a73e8;">AI NHẬN DIỆN CẦM CẦU</h3>
-    
-    <button id="start-btn" onclick="init()">1. MỞ CAMERA</button>
-    <button id="check-btn" onclick="startCheck()">2. BẮT ĐẦU KIỂM TRA</button>
+<div class="app-card">
+    <h2>AI CẦM CẦU LÔNG</h2>
+    <p class="sub-title">Phân tích kỹ thuật thời gian thực</p>
 
-    <div id="webcam-container"></div>
+    <button id="start-btn" class="btn" onclick="startApp()">▶ BẮT ĐẦU</button>
 
-    <div class="status-box">
-        <div class="label-row" id="row-0">
-            <strong>ĐÚNG KỸ THUẬT: <span id="val-0">0%</span></strong>
-            <div class="bar-bg"><div id="bar-0" class="bar-fill fill-dung"></div></div>
-        </div>
-        <div class="label-row" id="row-1">
-            <strong>SAI KỸ THUẬT: <span id="val-1">0%</span></strong>
-            <div class="bar-bg"><div id="bar-1" class="bar-fill fill-sai"></div></div>
-        </div>
-        <div class="label-row" id="row-2">
-            <strong>NỀN: <span id="val-2">0%</span></strong>
-            <div class="bar-bg"><div id="bar-2" class="bar-fill fill-nen"></div></div>
-        </div>
+    <button id="switch-btn" class="btn" onclick="switchCamera()">🔄 ĐỔI CAMERA SAU/TRƯỚC</button>
+
+    <div id="webcam-wrapper">
+        <div id="placeholder" style="color: #666; padding-top: 130px; font-size: 14px;">Chờ cấp quyền Camera...</div>
     </div>
+
+    <div id="dashboard">
+        </div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
@@ -56,44 +70,101 @@
 <script>
     const URL = "https://teachablemachine.withgoogle.com/models/-hHHKzHuH/";
     let model, webcam, maxPredictions;
-    let runCheck = false;
+    let isFacingBack = false;
 
-    async function init() {
-        document.getElementById("start-btn").innerText = "ĐANG TẢI...";
-        model = await tmImage.load(URL + "model.json", URL + "metadata.json");
-        maxPredictions = model.getTotalClasses();
+    // GIAI ĐOẠN 1: BẮT ĐẦU - CẤP QUYỀN & KHỞI ĐỘNG
+    async function startApp() {
+        const startBtn = document.getElementById("start-btn");
+        startBtn.innerText = "ĐANG TẢI MÔ HÌNH...";
+        startBtn.disabled = true;
 
-        webcam = new tmImage.Webcam(280, 280, false);
-        await webcam.setup({ facingMode: "user" });
+        try {
+            // Nạp mô hình AI
+            model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+            maxPredictions = model.getTotalClasses();
+
+            // Khởi động Camera
+            await setupWebcam();
+            
+            // Tạo giao diện Dashboard dựa trên Labels trong Teachable Machine
+            createDashboard();
+
+            // Hiển thị nút Đổi camera & Dashboard, ẩn nút Bắt đầu
+            startBtn.style.display = "none";
+            document.getElementById("switch-btn").style.display = "block";
+            document.getElementById("dashboard").style.display = "block";
+            
+            window.requestAnimationFrame(loop);
+        } catch (e) {
+            alert("Không thể mở camera. Hãy nhấn vào biểu tượng ổ khóa trên thanh địa chỉ để cho phép.");
+            startBtn.innerText = "▶ THỬ LẠI";
+            startBtn.disabled = false;
+        }
+    }
+
+    async function setupWebcam() {
+        const flip = !isFacingBack;
+        webcam = new tmImage.Webcam(280, 280, flip);
+        await webcam.setup({ facingMode: isFacingBack ? "environment" : "user" });
         await webcam.play();
+        const container = document.getElementById("webcam-wrapper");
+        container.innerHTML = ""; // Xóa placeholder
+        container.appendChild(webcam.canvas);
+    }
+
+    function createDashboard() {
+        const dashboard = document.getElementById("dashboard");
+        dashboard.innerHTML = "";
+        const labels = model.getClassLabels();
         
-        document.getElementById("webcam-container").appendChild(webcam.canvas);
-        document.getElementById("start-btn").style.display = "none";
-        document.getElementById("check-btn").style.display = "block";
-        window.requestAnimationFrame(loop);
+        for (let i = 0; i < maxPredictions; i++) {
+            const labelClean = labels[i].toLowerCase();
+            let colorClass = "fill-nen";
+            let icon = "⚪";
+            
+            if (labelClean.includes("dung")) { colorClass = "fill-dung"; icon = "✅"; }
+            if (labelClean.includes("sai")) { colorClass = "fill-sai"; icon = "❌"; }
+
+            dashboard.innerHTML += `
+                <div class="result-row" id="row-${i}">
+                    <div class="label-info">
+                        <span class="label-name">${icon} ${labels[i]}</span>
+                        <span class="label-percent" id="perc-${i}">0%</span>
+                    </div>
+                    <div class="bar-bg">
+                        <div id="bar-${i}" class="bar-fill ${colorClass}"></div>
+                    </div>
+                </div>`;
+        }
     }
 
     async function loop() {
         webcam.update();
-        if (runCheck) await predict();
+        await predict();
         window.requestAnimationFrame(loop);
-    }
-
-    function startCheck() {
-        runCheck = true;
-        document.getElementById("check-btn").style.backgroundColor = "#ffc107";
-        document.getElementById("check-btn").innerText = "ĐANG KIỂM TRA...";
     }
 
     async function predict() {
         const prediction = await model.predict(webcam.canvas);
         for (let i = 0; i < maxPredictions; i++) {
             const prob = (prediction[i].probability * 100).toFixed(0);
-            document.getElementById(`val-${i}`).innerText = prob + "%";
-            document.getElementById(`bar-${i}`).style.width = prob + "%";
             
-            // Làm nổi bật dòng có % cao nhất
-            document.getElementById(`row-${i}`).style.background = prob > 70 ? "#d4edda" : "#eee";
+            // Cập nhật thanh bar và con số %
+            document.getElementById(`bar-${i}`).style.width = prob + "%";
+            document.getElementById(`perc-${i}`).innerText = prob + "%";
+            
+            // Highlight dòng có kết quả cao nhất (>70%)
+            const row = document.getElementById(`row-${i}`);
+            row.style.background = prob > 70 ? "#e8f0fe" : "#f1f3f4";
+            row.style.border = prob > 70 ? "1px solid #1a73e8" : "none";
+        }
+    }
+
+    async function switchCamera() {
+        isFacingBack = !isFacingBack;
+        if (webcam) {
+            webcam.stop();
+            await setupWebcam();
         }
     }
 </script>

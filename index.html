@@ -3,47 +3,44 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI PHÂN TÍCH CẦM CẦU LÔNG</title>
+    <title>AI Kiểm Tra Kỹ Thuật Cầm Cầu</title>
     <style>
-        :root { --primary: #1a73e8; --success: #28a745; --danger: #dc3545; --neutral: #6c757d; }
-        body { font-family: -apple-system, system-ui, sans-serif; background-color: #f8f9fa; margin: 0; padding: 15px; display: flex; justify-content: center; }
-        .app-card { width: 100%; max-width: 450px; background: white; padding: 25px; border-radius: 25px; box-shadow: 0 10px 30px rgba(0,0,0,0.1); text-align: center; }
+        /* CSS xây dựng bố cục giống hệt hình ảnh */
+        body { font-family: -apple-system, system-ui, sans-serif; text-align: center; background-color: #f8f9fa; margin: 0; padding: 15px; }
+        .app-card { width: 100%; max-width: 420px; margin: auto; background: white; padding: 25px; border-radius: 20px; box-shadow: 0 10px 25px rgba(0,0,0,0.08); }
         
-        h2 { color: var(--primary); font-size: 22px; margin-bottom: 5px; text-transform: uppercase; }
-        .sub-title { color: #666; font-size: 14px; margin-bottom: 20px; }
-
+        /* Header */
+        h2 { color: #1a73e8; margin-bottom: 5px; text-transform: uppercase; font-size: 20px; }
+        p.sub-title { color: #666; font-size: 13px; margin-bottom: 20px; }
+        
         /* Khung Camera */
         #webcam-wrapper { 
             position: relative; margin: 0 auto 20px; width: 280px; height: 280px; 
-            border: 6px solid #333; border-radius: 20px; overflow: hidden; background: #000;
+            border: 6px solid #333; border-radius: 15px; overflow: hidden; background: #000;
         }
         #webcam-wrapper canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
 
-        /* Nút bấm */
+        /* Nút Bấm - Giao diện nút to trên di động */
         .btn { 
-            padding: 18px; font-size: 18px; border-radius: 12px; border: none; color: white; 
-            cursor: pointer; font-weight: bold; width: 100%; transition: all 0.3s ease;
+            padding: 18px 25px; font-size: 17px; border-radius: 12px; border: none; 
+            color: white; cursor: pointer; font-weight: bold; width: 100%; margin-bottom: 12px;
+            transition: all 0.2s;
         }
-        #start-btn { background: var(--success); box-shadow: 0 4px 15px rgba(40,167,69,0.3); }
-        #switch-btn { background: var(--primary); display: none; margin-bottom: 15px; }
-        .btn:active { transform: scale(0.98); }
-
-        /* Bảng hiển thị kết quả % */
-        #dashboard { display: none; margin-top: 20px; text-align: left; }
-        .result-row { 
-            margin-bottom: 12px; padding: 12px; border-radius: 12px; 
-            background: #f1f3f4; transition: background 0.2s; 
-        }
-        .label-info { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
-        .label-name { font-weight: bold; font-size: 15px; }
-        .label-percent { font-family: monospace; font-size: 18px; font-weight: bold; }
+        .btn:active { transform: scale(0.97); }
+        #start-btn { background: #28a745; display: block !important; } /* Ép buộc hiển thị nút Bắt đầu */
+        #switch-btn { background: #007bff; display: none; } /* Chỉ hiện sau khi Bắt đầu */
         
-        /* Thanh Progress Bar */
-        .bar-bg { width: 100%; height: 12px; background: #dfe1e5; border-radius: 6px; overflow: hidden; }
-        .bar-fill { height: 100%; width: 0%; transition: width 0.2s ease-out; }
-        .fill-dung { background: var(--success); }
-        .fill-sai { background: var(--danger); }
-        .fill-nen { background: var(--neutral); }
+        /* Bảng hiển thị kết quả chi tiết (%) */
+        #dashboard { display: none; margin-top: 20px; text-align: left; }
+        .result-item { margin-bottom: 12px; padding: 10px; border-radius: 10px; background: #f1f3f4; }
+        .label-text { font-weight: bold; font-size: 14px; margin-bottom: 5px; display: block; }
+        .progress-bar { width: 100%; height: 12px; background: #dfe1e5; border-radius: 6px; overflow: hidden; margin-top: 5px; }
+        .progress-fill { height: 100%; width: 0%; transition: width 0.1s; }
+
+        /* Màu sắc cho từng nhãn (%) */
+        .fill-dung { background: #28a745; }
+        .fill-sai { background: #dc3545; }
+        .fill-nen { background: #6c757d; }
     </style>
 </head>
 <body>
@@ -52,12 +49,11 @@
     <h2>AI CẦM CẦU LÔNG</h2>
     <p class="sub-title">Phân tích kỹ thuật thời gian thực</p>
 
-    <button id="start-btn" class="btn" onclick="startApp()">▶ BẮT ĐẦU</button>
-
+    <button id="start-btn" class="btn" onclick="startApp()">▶ BẮT ĐẦU KIỂM TRA</button>
     <button id="switch-btn" class="btn" onclick="switchCamera()">🔄 ĐỔI CAMERA SAU/TRƯỚC</button>
 
     <div id="webcam-wrapper">
-        <div id="placeholder" style="color: #666; padding-top: 130px; font-size: 14px;">Chờ cấp quyền Camera...</div>
+        <div id="placeholder" style="color: white; padding-top: 130px; font-size: 14px;">Camera sẽ hiển thị tại đây</div>
     </div>
 
     <div id="dashboard">
@@ -72,11 +68,12 @@
     let model, webcam, maxPredictions;
     let isFacingBack = false;
 
-    // GIAI ĐOẠN 1: BẮT ĐẦU - CẤP QUYỀN & KHỞI ĐỘNG
+    // Giai đoạn 1: Bắt đầu - Cấp quyền camera & Khởi động
     async function startApp() {
         const startBtn = document.getElementById("start-btn");
         startBtn.innerText = "ĐANG TẢI MÔ HÌNH...";
         startBtn.disabled = true;
+        startBtn.style.opacity = "0.7";
 
         try {
             // Nạp mô hình AI
@@ -86,7 +83,7 @@
             // Khởi động Camera
             await setupWebcam();
             
-            // Tạo giao diện Dashboard dựa trên Labels trong Teachable Machine
+            // Tạo sẵn các thanh bar kết quả dựa theo labels
             createDashboard();
 
             // Hiển thị nút Đổi camera & Dashboard, ẩn nút Bắt đầu
@@ -96,9 +93,10 @@
             
             window.requestAnimationFrame(loop);
         } catch (e) {
-            alert("Không thể mở camera. Hãy nhấn vào biểu tượng ổ khóa trên thanh địa chỉ để cho phép.");
-            startBtn.innerText = "▶ THỬ LẠI";
+            alert("Lỗi: Không thể mở camera. Hãy nhấn biểu tượng ổ khóa trên thanh địa chỉ để cho phép.");
+            startBtn.innerText = "▶ THỬ LẠI BẮT ĐẦU";
             startBtn.disabled = false;
+            startBtn.style.opacity = "1";
         }
     }
 
@@ -118,22 +116,17 @@
         const labels = model.getClassLabels();
         
         for (let i = 0; i < maxPredictions; i++) {
+            // Chuẩn hóa tên nhãn không phân biệt hoa/thường để gắn màu
             const labelClean = labels[i].toLowerCase();
-            let colorClass = "fill-nen";
-            let icon = "⚪";
+            let colorClass = "fill-nen"; // Mặc định màu xám
             
-            if (labelClean.includes("dung")) { colorClass = "fill-dung"; icon = "✅"; }
-            if (labelClean.includes("sai")) { colorClass = "fill-sai"; icon = "❌"; }
+            if (labelClean.includes("dung")) colorClass = "fill-dung"; // Màu xanh lá
+            if (labelClean.includes("sai")) colorClass = "fill-sai";   // Màu đỏ
 
             dashboard.innerHTML += `
-                <div class="result-row" id="row-${i}">
-                    <div class="label-info">
-                        <span class="label-name">${icon} ${labels[i]}</span>
-                        <span class="label-percent" id="perc-${i}">0%</span>
-                    </div>
-                    <div class="bar-bg">
-                        <div id="bar-${i}" class="bar-fill ${colorClass}"></div>
-                    </div>
+                <div class="result-item" id="item-${i}">
+                    <span class="label-text" id="label-${i}">${labels[i]}: <span id="perc-${i}">0%</span></span>
+                    <div class="progress-bar"><div id="bar-${i}" class="progress-fill ${colorClass}"></div></div>
                 </div>`;
         }
     }
@@ -149,14 +142,16 @@
         for (let i = 0; i < maxPredictions; i++) {
             const prob = (prediction[i].probability * 100).toFixed(0);
             
-            // Cập nhật thanh bar và con số %
-            document.getElementById(`bar-${i}`).style.width = prob + "%";
+            // Cập nhật thanh bar và con số % thời gian thực
             document.getElementById(`perc-${i}`).innerText = prob + "%";
+            document.getElementById(`bar-${i}`).style.width = prob + "%";
             
-            // Highlight dòng có kết quả cao nhất (>70%)
-            const row = document.getElementById(`row-${i}`);
-            row.style.background = prob > 70 ? "#e8f0fe" : "#f1f3f4";
-            row.style.border = prob > 70 ? "1px solid #1a73e8" : "none";
+            // Làm nổi bật dòng có kết quả cao nhất (>70%)
+            if (prob > 70) {
+                document.getElementById(`item-${i}`).style.backgroundColor = "#e8f0fe";
+            } else {
+                document.getElementById(`item-${i}`).style.backgroundColor = "#f1f3f4";
+            }
         }
     }
 

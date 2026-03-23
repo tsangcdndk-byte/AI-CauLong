@@ -3,25 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Kiểm Tra Cầm Cầu</title>
+    <title>AI Cầm Cầu Lông - Phiên bản Chuẩn</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 10px; overflow-x: hidden; }
         .app-card { width: 100%; max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
-        h2 { color: #1a73e8; font-size: 1.1rem; margin: 10px 0; text-transform: uppercase; }
+        h2 { color: #1a73e8; margin: 10px 0; text-transform: uppercase; font-size: 1.1rem; }
         
         #webcam-wrapper { 
             width: 100%; aspect-ratio: 1/1; border: 6px solid #333; border-radius: 20px; 
             background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;
         }
         #webcam-wrapper canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
-        #loading-overlay { position: absolute; color: white; font-size: 14px; display: none; background: rgba(0,0,0,0.6); width: 100%; height: 100%; padding-top: 130px; }
+        #loading-overlay { position: absolute; color: white; font-size: 14px; display: none; background: rgba(0,0,0,0.7); width: 100%; height: 100%; padding-top: 130px; z-index: 10; }
 
-        .btn { padding: 18px; font-size: 16px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: bold; width: 100%; margin: 5px 0; text-transform: uppercase; }
-        #start-btn { background: #28a745; }
+        .btn { padding: 18px; font-size: 16px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: bold; width: 100%; margin: 8px 0; text-transform: uppercase; }
+        #start-btn { background: #28a745; box-shadow: 0 4px 12px rgba(40,167,69,0.3); }
         #switch-btn { background: #007bff; display: none; }
 
-        .result-item { margin-top: 10px; padding: 10px; border-radius: 12px; background: #f8f9fa; text-align: left; transition: 0.2s; }
+        .result-item { margin-top: 10px; padding: 10px; border-radius: 12px; background: #f8f9fa; text-align: left; }
         .bar-bg { width: 100%; height: 10px; background: #eee; border-radius: 5px; overflow: hidden; margin-top: 5px; }
         .bar-fill { height: 100%; width: 0%; transition: width 0.2s; }
     </style>
@@ -30,17 +30,17 @@
 
 <div class="app-card">
     <h2>AI CẦM CẦU LÔNG</h2>
-    <p style="font-size: 12px; color: #666;">Hệ thống mặc định mở <b>Camera Sau</b></p>
+    <p style="font-size: 11px; color: #666; margin-bottom: 15px;">Ưu tiên mở: <b>CAMERA SAU</b></p>
     
     <button id="start-btn" class="btn" onclick="startApp()">▶ BẮT ĐẦU KIỂM TRA</button>
     <button id="switch-btn" class="btn" onclick="switchCamera()">🔄 ĐỔI CAMERA TRƯỚC/SAU</button>
     
     <div id="webcam-wrapper">
-        <div id="loading-overlay">ĐANG CẤU HÌNH CAMERA...</div>
-        <div id="msg" style="color: #888; font-size: 13px;">Chờ nhấn Bắt đầu...</div>
+        <div id="loading-overlay">ĐANG KHỞI TẠO...</div>
+        <div id="msg" style="color: #888; font-size: 13px; padding: 20px;">Vui lòng cấp quyền Camera nếu trình duyệt hỏi.</div>
     </div>
     
-    <div id="dashboard" style="display:none;"></div>
+    <div id="dashboard" style="display:none; margin-top: 15px;"></div>
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@1.3.1/dist/tf.min.js"></script>
@@ -49,7 +49,7 @@
 <script>
     const URL = "https://teachablemachine.withgoogle.com/models/-hHHKzHuH/";
     let model, webcam, maxPredictions;
-    let isFacingBack = true; // ĐẶT MẶC ĐỊNH LÀ CAMERA SAU
+    let isFacingBack = true; 
     let isProcessing = false;
 
     async function startApp() {
@@ -59,16 +59,21 @@
         startBtn.disabled = true;
 
         try {
+            // Tải mô hình AI trước
             model = await tmImage.load(URL + "model.json", URL + "metadata.json");
             maxPredictions = model.getTotalClasses();
+            
+            // Thử khởi động camera
             await setupWebcam();
+            
             createDashboard();
             startBtn.style.display = "none";
             document.getElementById("switch-btn").style.display = "block";
             document.getElementById("dashboard").style.display = "block";
             window.requestAnimationFrame(loop);
         } catch (e) {
-            alert("LỖI: Không thể mở Camera. Hãy đảm bảo bạn dùng Safari/Chrome và đã 'Cho phép' camera.");
+            console.error(e);
+            alert("KHÔNG THỂ MỞ CAMERA: Hãy nhấn vào biểu tượng Ổ KHÓA trên thanh địa chỉ và chọn 'Cho phép Camera'.");
             startBtn.innerText = "▶ THỬ LẠI";
             startBtn.disabled = false;
         }
@@ -76,48 +81,52 @@
 
     async function setupWebcam() {
         document.getElementById("loading-overlay").style.display = "block";
+        if (webcam) { await webcam.stop(); }
         
-        // 1. Dừng webcam cũ (nếu có)
-        if (webcam) {
-            await webcam.stop();
-        }
+        // Chờ một chút để giải phóng phần cứng
+        await new Promise(r => setTimeout(r, 600));
 
-        // 2. Chờ 500ms để phần cứng điện thoại "xả băng"
-        await new Promise(resolve => setTimeout(resolve, 500));
-
-        // 3. Khởi tạo webcam mới
-        // Camera trước (!isFacingBack = false) thì flip=true
-        // Camera sau (isFacingBack = true) thì flip=false
         const flip = !isFacingBack; 
         webcam = new tmImage.Webcam(300, 300, flip);
         
-        await webcam.setup({ facingMode: isFacingBack ? "environment" : "user" });
-        await webcam.play();
+        // Thử lại nếu camera chưa sẵn sàng
+        let attempts = 0;
+        while (attempts < 3) {
+            try {
+                await webcam.setup({ facingMode: isFacingBack ? "environment" : "user" });
+                await webcam.play();
+                break; 
+            } catch (err) {
+                attempts++;
+                if (attempts === 3) throw err;
+                await new Promise(r => setTimeout(r, 1000));
+            }
+        }
 
-        document.getElementById("webcam-wrapper").innerHTML = "";
-        document.getElementById("webcam-wrapper").appendChild(webcam.canvas);
+        const wrapper = document.getElementById("webcam-wrapper");
+        wrapper.innerHTML = "";
+        wrapper.appendChild(webcam.canvas);
         document.getElementById("loading-overlay").style.display = "none";
     }
 
     async function switchCamera() {
         if (isProcessing) return;
         isProcessing = true;
-        
         isFacingBack = !isFacingBack;
         const btn = document.getElementById("switch-btn");
+        const originalText = btn.innerText;
         btn.innerText = "ĐANG CHUYỂN...";
-        btn.disabled = true;
 
         try {
             await setupWebcam();
-            btn.innerText = "🔄 ĐỔI CAMERA TRƯỚC/SAU";
         } catch (e) {
-            alert("Thiết bị không hỗ trợ hoặc lỗi quyền camera.");
+            alert("Lỗi đổi camera. Hệ thống sẽ quay lại camera cũ.");
             isFacingBack = !isFacingBack;
+            await setupWebcam();
+        } finally {
+            btn.innerText = originalText;
+            isProcessing = false;
         }
-        
-        btn.disabled = false;
-        isProcessing = false;
     }
 
     function createDashboard() {

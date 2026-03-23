@@ -3,11 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>AI Cầm Cầu Lông - Phiên bản Chuẩn</title>
+    <title>AI Cầm Cầu Lông - Bản Sửa Lỗi Quyền</title>
     <style>
         * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
         body { font-family: -apple-system, sans-serif; text-align: center; background: #f0f2f5; margin: 0; padding: 10px; overflow-x: hidden; }
-        .app-card { width: 100%; max-width: 400px; margin: auto; background: white; padding: 20px; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
+        .app-card { width: 100%; max-width: 400px; margin: 5px auto; background: white; padding: 20px; border-radius: 25px; box-shadow: 0 10px 25px rgba(0,0,0,0.1); }
         h2 { color: #1a73e8; margin: 10px 0; text-transform: uppercase; font-size: 1.1rem; }
         
         #webcam-wrapper { 
@@ -15,10 +15,10 @@
             background: #000; display: flex; align-items: center; justify-content: center; overflow: hidden; position: relative;
         }
         #webcam-wrapper canvas { width: 100% !important; height: 100% !important; object-fit: cover; }
-        #loading-overlay { position: absolute; color: white; font-size: 14px; display: none; background: rgba(0,0,0,0.7); width: 100%; height: 100%; padding-top: 130px; z-index: 10; }
+        #status-log { position: absolute; bottom: 10px; left: 10px; color: #0f0; font-size: 10px; text-align: left; background: rgba(0,0,0,0.5); padding: 5px; pointer-events: none; }
 
         .btn { padding: 18px; font-size: 16px; border-radius: 12px; border: none; color: white; cursor: pointer; font-weight: bold; width: 100%; margin: 8px 0; text-transform: uppercase; }
-        #start-btn { background: #28a745; box-shadow: 0 4px 12px rgba(40,167,69,0.3); }
+        #start-btn { background: #28a745; }
         #switch-btn { background: #007bff; display: none; }
 
         .result-item { margin-top: 10px; padding: 10px; border-radius: 12px; background: #f8f9fa; text-align: left; }
@@ -30,14 +30,13 @@
 
 <div class="app-card">
     <h2>AI CẦM CẦU LÔNG</h2>
-    <p style="font-size: 11px; color: #666; margin-bottom: 15px;">Ưu tiên mở: <b>CAMERA SAU</b></p>
     
-    <button id="start-btn" class="btn" onclick="startApp()">▶ BẮT ĐẦU KIỂM TRA</button>
+    <button id="start-btn" class="btn" onclick="requestPermissionAndStart()">▶ NHẤN ĐỂ KÍCH HOẠT</button>
     <button id="switch-btn" class="btn" onclick="switchCamera()">🔄 ĐỔI CAMERA TRƯỚC/SAU</button>
     
     <div id="webcam-wrapper">
-        <div id="loading-overlay">ĐANG KHỞI TẠO...</div>
-        <div id="msg" style="color: #888; font-size: 13px; padding: 20px;">Vui lòng cấp quyền Camera nếu trình duyệt hỏi.</div>
+        <div id="status-log">Trạng thái: Đang chờ...</div>
+        <div id="msg" style="color: #888; font-size: 13px;">Nhấn nút xanh để bắt đầu</div>
     </div>
     
     <div id="dashboard" style="display:none; margin-top: 15px;"></div>
@@ -49,84 +48,82 @@
 <script>
     const URL = "https://teachablemachine.withgoogle.com/models/-hHHKzHuH/";
     let model, webcam, maxPredictions;
-    let isFacingBack = true; 
+    let isFacingBack = true; // Mặc định camera sau
     let isProcessing = false;
 
-    async function startApp() {
+    function log(msg) { document.getElementById("status-log").innerText = "Log: " + msg; }
+
+    // BƯỚC QUAN TRỌNG NHẤT: XIN QUYỀN TRỰC TIẾP
+    async function requestPermissionAndStart() {
         if(isProcessing) return;
-        const startBtn = document.getElementById("start-btn");
-        startBtn.innerText = "ĐANG TẢI MÔ HÌNH...";
-        startBtn.disabled = true;
+        isProcessing = true;
+        log("Đang xin quyền hệ thống...");
 
         try {
-            // Tải mô hình AI trước
-            model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+            // Ép hệ điều hành mở camera để kiểm tra quyền thực tế
+            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: isFacingBack ? "environment" : "user" } });
+            stream.getTracks().forEach(track => track.stop()); // Tắt ngay sau khi biết đã có quyền
+            
+            log("Quyền OK. Đang tải mô hình...");
+            await startApp();
+        } catch (err) {
+            log("Lỗi quyền: " + err.message);
+            alert("BẠN CẦN CHO PHÉP: Nhấn vào biểu tượng Ổ KHÓA/AA trên thanh địa chỉ, chọn 'Cho phép Camera' rồi tải lại trang.");
+            isProcessing = false;
+        }
+    }
+
+    async function startApp() {
+        try {
+            if (!model) {
+                model = await tmImage.load(URL + "model.json", URL + "metadata.json");
+            }
             maxPredictions = model.getTotalClasses();
-            
-            // Thử khởi động camera
             await setupWebcam();
-            
             createDashboard();
-            startBtn.style.display = "none";
+            
+            document.getElementById("start-btn").style.display = "none";
             document.getElementById("switch-btn").style.display = "block";
             document.getElementById("dashboard").style.display = "block";
             window.requestAnimationFrame(loop);
         } catch (e) {
-            console.error(e);
-            alert("KHÔNG THỂ MỞ CAMERA: Hãy nhấn vào biểu tượng Ổ KHÓA trên thanh địa chỉ và chọn 'Cho phép Camera'.");
-            startBtn.innerText = "▶ THỬ LẠI";
-            startBtn.disabled = false;
+            log("Lỗi tải Model: " + e.message);
         }
+        isProcessing = false;
     }
 
     async function setupWebcam() {
-        document.getElementById("loading-overlay").style.display = "block";
+        log("Khởi tạo phần cứng...");
         if (webcam) { await webcam.stop(); }
         
-        // Chờ một chút để giải phóng phần cứng
+        // Khoảng nghỉ để giải phóng tài nguyên
         await new Promise(r => setTimeout(r, 600));
 
         const flip = !isFacingBack; 
         webcam = new tmImage.Webcam(300, 300, flip);
         
-        // Thử lại nếu camera chưa sẵn sàng
-        let attempts = 0;
-        while (attempts < 3) {
-            try {
-                await webcam.setup({ facingMode: isFacingBack ? "environment" : "user" });
-                await webcam.play();
-                break; 
-            } catch (err) {
-                attempts++;
-                if (attempts === 3) throw err;
-                await new Promise(r => setTimeout(r, 1000));
-            }
-        }
+        await webcam.setup({ facingMode: isFacingBack ? "environment" : "user" });
+        await webcam.play();
 
         const wrapper = document.getElementById("webcam-wrapper");
-        wrapper.innerHTML = "";
+        wrapper.innerHTML = '<div id="status-log"></div>';
         wrapper.appendChild(webcam.canvas);
-        document.getElementById("loading-overlay").style.display = "none";
+        log("Camera sẵn sàng!");
     }
 
     async function switchCamera() {
         if (isProcessing) return;
         isProcessing = true;
         isFacingBack = !isFacingBack;
-        const btn = document.getElementById("switch-btn");
-        const originalText = btn.innerText;
-        btn.innerText = "ĐANG CHUYỂN...";
-
+        log("Đang đổi camera...");
         try {
             await setupWebcam();
         } catch (e) {
-            alert("Lỗi đổi camera. Hệ thống sẽ quay lại camera cũ.");
+            log("Lỗi đổi cam: " + e.message);
             isFacingBack = !isFacingBack;
             await setupWebcam();
-        } finally {
-            btn.innerText = originalText;
-            isProcessing = false;
         }
+        isProcessing = false;
     }
 
     function createDashboard() {
@@ -137,7 +134,7 @@
             let color = clean.includes("dung") ? "#28a745" : (clean.includes("sai") ? "#dc3545" : "#6c757d");
             db.innerHTML += `
                 <div class="result-item" id="row-${i}">
-                    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:14px;">
+                    <div style="display:flex; justify-content:space-between; font-weight:bold; font-size:13px;">
                         <span>${l}</span> <span id="p${i}">0%</span>
                     </div>
                     <div class="bar-bg"><div id="b${i}" class="bar-fill" style="background:${color}"></div></div>
